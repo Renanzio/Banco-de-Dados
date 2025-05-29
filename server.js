@@ -107,6 +107,24 @@ app.post('/usuarios', async (req, res) => {
         res.status(500).json({ error: 'Erro ao criar usuário.' });
     }
 });
+app.post('/usuarios', async (req, res) => {
+    try {
+        const {permissoes} = req.body;
+        if (!permissoes) {
+            return res.status(400).json({ error: 'O campo permissão é obrigatório.' })
+        }
+        const connection = await mysql.createConnection(dbConfig);
+        const [result] = await connection.execute(
+            'INSERT INTO cargos (permissoes) VALUES (?)',
+            [permissoes]
+        );
+        await connection.end();
+        res.status(201).json({ id: result.insertId, permissoes, message: 'Permissão criada com sucesso.'})
+    } catch (error) {
+        console.error('Erro ao criar permissão: ', error);
+        res.status(500).json({ error: 'Erro ao criar permissão.'});
+    }
+})
 
 app.listen(port, () => {
     console.log(`Servidor rodando em http://localhost:${port}`)
