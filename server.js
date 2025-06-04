@@ -89,23 +89,43 @@ app.put('/usuarios/:id', async(req, res) =>{
 });
 
 app.post('/usuarios', async (req, res) => {
-    try {
-        const { nome } = req.body;
-        const { email } = req.body;
-        if (!nome || !email) {
-            return res.status(400).json({ error: 'Os campos "nome" e "email" são obrigatórios.' });
-        }
-        const connection = await mysql.createConnection(dbConfig);
-        const [result] = await connection.execute(
-            'INSERT INTO usuario (nome, email) VALUES (?, ?)',
-            [nome, email]
-        );
-        await connection.end();
-        res.status(201).json({ id: result.insertId, nome, email, message: 'Usuário criado com sucesso.' });
-    } catch (error) {
-        console.error('Erro ao criar usuário:', error);
-        res.status(500).json({ error: 'Erro ao criar usuário.' });
-    }
+    try {
+        const { nome, email, permissoes } = req.body;
+
+        if (!nome || !email) {
+            return res.status(400).json({ error: 'Os campos "nome" e "email" são obrigatórios.' });
+        }
+
+        const connection = await mysql.createConnection(dbConfig);
+        
+        const [userResult] = await connection.execute(
+            'INSERT INTO usuario (nome, email) VALUES (?, ?)',
+            [nome, email]
+        );
+
+        const usuarioId = userResult.insertId;
+
+        if (permissoes) {
+            await connection.execute(
+                'INSERT INTO cargo (permissoes, usuario_id) VALUES (?, ?)',
+                [permissoes, usuarioId]
+            );
+        }
+
+        await connection.end();
+
+        res.status(201).json({
+            id: usuarioId,
+            nome,
+            email,
+            permissoes: permissoes || null,
+            message: 'Usuário (e cargo) criado com sucesso.'
+        });
+
+    } catch (error) {
+        console.error('Erro ao criar usuário:', error);
+        res.status(500).json({ error: 'Erro ao criar usuário.' });
+    }
 });
 app.delete('/cargos/:id', async (req, res) => {
     try {
